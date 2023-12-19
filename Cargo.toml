@@ -1,0 +1,11 @@
+[package]
+name = "antenna"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+authors = [
+    "c1m50c <58411864+c1m50c@users.noreply.github.com>"
+]
+
+[dependencies]
