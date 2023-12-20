@@ -9,3 +9,8 @@ authors = [
 ]
 
 [dependencies]
+tree-sitter = "0.20.10"
+tree-sitter-rust = { version = "0.20.4", optional = true }
+
+[features]
+rust = [ "dep:tree-sitter-rust" ]
