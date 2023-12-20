@@ -1,0 +1,49 @@
+name: Verify
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+
+jobs:
+  acceptance-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - identifier: Windows
+            os: windows-latest
+
+          - identifier: Ubuntu
+            os: ubuntu-latest
+
+          - identifier: MacOS
+            os: macos-latest
+
+    name: Acceptance Tests - ${{ matrix.identifier }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install Just
+        uses: taiki-e/install-action@just
+
+      - name: Setup Rust Toolchain - Stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+          toolchain: stable
+          cache: true
+
+      - name: Setup Rust Toolchain - Nightly
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+          toolchain: nightly
+          cache: true
+
+      - name: Run - Acceptance Tests
+        run: just acceptance-tests
