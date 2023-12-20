@@ -4,7 +4,10 @@ acceptance-tests:
 
     cargo +stable clippy --no-deps --all-features -- -Dwarnings
     cargo +stable build --all-features
-    cargo +stable test --all-features
+
+    cargo +stable test --bin antenna --all-features
+    cargo +stable test --lib --all-features
+    cargo +stable test --doc --all-features
 
 # Format source code using `cargo fmt`.
 format:
