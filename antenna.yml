@@ -1,0 +1,4 @@
+queries:
+  - name: Function Calls
+    include: ./src/**/*.rs
+    query: (call_expression)
