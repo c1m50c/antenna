@@ -5,7 +5,7 @@ use_field_init_shorthand = true
 force_multiline_blocks = true
 combine_control_expr = false
 use_try_shorthand = true
-newline_style = "Unix"
+newline_style = "Auto"
 fn_single_line = true
 edition = "2021"
 
