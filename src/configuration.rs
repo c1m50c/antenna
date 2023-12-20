@@ -37,8 +37,11 @@ impl AntennaQuery {
         }
 
         let query = |source_code: &str, extension: &str| -> AntennaResult<usize> {
-            let language = RecognizedLanguage::from_language_extension(extension).ok_or(AntennaError::Antenna {
-                message: format!("Failed to find a `RecognizedLanguage` from the `{extension}` extension"),
+            let language = RecognizedLanguage::from_language_extension(extension)
+                .ok_or(AntennaError::Antenna {
+                message: format!(
+                    "Failed to find a `RecognizedLanguage` from the `{extension}` extension"
+                ),
             })?;
 
             let query = Query::new(language.as_tree_sitter_language(), &self.query)?;
@@ -46,9 +49,11 @@ impl AntennaQuery {
 
             parser.set_language(language.as_tree_sitter_language())?;
 
-            let tree = parser.parse(source_code, None).ok_or(AntennaError::Antenna {
-                message: "Failed to parse `source_code` into a `Tree`".to_string(),
-            })?;
+            let tree = parser
+                .parse(source_code, None)
+                .ok_or(AntennaError::Antenna {
+                    message: "Failed to parse `source_code` into a `Tree`".to_string(),
+                })?;
 
             let mut cursor = QueryCursor::new();
 
