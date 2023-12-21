@@ -4,3 +4,9 @@ queries:
       - occurrences
     include: ./src/**/*.rs
     query: (call_expression)
+
+  - name: Todos
+    output:
+      - occurrences
+    include: ./src/**/*.rs
+    query: ((line_comment) @constant (.match? @constant "TODO:.*"))
