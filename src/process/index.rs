@@ -114,7 +114,7 @@ impl Indexer {
     {
         self.files_by_query_name
             .get(query_name.as_ref())
-            .map(|x| x.into_iter().map(|x| x.as_ref()))
+            .map(|x| x.iter().map(|x| x.as_ref()))
     }
 
     /// Retrieves an [`IndexedFile`] via the associated `path`.
