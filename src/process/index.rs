@@ -6,7 +6,7 @@ use std::{
 };
 
 use rayon::prelude::*;
-use tree_sitter::Query;
+use tree_sitter::{Parser, Query, Tree};
 
 use crate::{
     configuration::{AntennaConfiguration, AntennaQuery},
@@ -158,6 +158,8 @@ impl Indexer {
     {
         let mut file = OpenOptions::new().read(true).open(&path)?;
         let mut content = Vec::with_capacity(0xF4240);
+        let mut parser = Parser::new();
+
         file.read_to_end(&mut content)?;
 
         let extension = path
@@ -184,12 +186,21 @@ impl Indexer {
                 message: format!("Could not retrieve `{:?}`'s file name", path.as_ref()),
             })?;
 
+        parser.set_language(recognized_language.as_tree_sitter_language())?;
+
+        let tree = parser
+            .parse(String::from_utf8(content.clone())?, None)
+            .ok_or(AntennaError::Antenna {
+                message: format!("Failed to parse `{:?}`", path.as_ref()),
+            })?;
+
         Ok(IndexedFile {
             path: path.as_ref().to_path_buf(),
             recognized_language,
             extension,
             content,
             name,
+            tree,
         })
     }
 }
@@ -201,4 +212,5 @@ pub struct IndexedFile {
     pub content: Vec<u8>,
     pub path: PathBuf,
     pub name: String,
+    pub tree: Tree,
 }
