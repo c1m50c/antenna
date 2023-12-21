@@ -11,5 +11,5 @@ edition = "2021"
 
 # Source Code Width
 error_on_line_overflow = true
-comment_width = 128
-max_width = 128
+comment_width = 96
+max_width = 96
