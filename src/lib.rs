@@ -5,6 +5,7 @@ use thiserror::Error;
 use tree_sitter::{Language, LanguageError, QueryError};
 
 pub mod configuration;
+pub mod process;
 
 /// Wrapper type of a [`Result`] where the [`Err`] variant is a [`AntennaError`].
 pub type AntennaResult<T> = Result<T, AntennaError>;
@@ -56,10 +57,13 @@ pub enum AntennaError {
 
     #[error("antenna error")]
     Antenna { message: String },
+
+    #[error("error collection")]
+    Collection { errors: Vec<AntennaError> },
 }
 
 /// An enumerator holding variants that are languages _recognized_ by `antenna`.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum RecognizedLanguage {
     #[cfg(feature = "rust")]
     Rust,
