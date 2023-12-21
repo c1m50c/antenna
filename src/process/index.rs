@@ -49,22 +49,31 @@ impl Indexer {
 
         for index in indices {
             match index {
-                Ok((indexed_queries, indexed_files, associated_query)) => {
+                Ok((
+                    indexed_queries,
+                    indexed_files,
+                    (associated_query, associated_include),
+                )) => {
                     files.extend(indexed_files);
                     queries.extend(indexed_queries);
 
-                    files.iter().for_each(|x| {
-                        match files_by_query_name.get_mut(&associated_query) {
-                            Some(collection) => {
-                                collection.insert(Arc::clone(x));
-                            },
+                    let associated_glob =
+                        glob::glob(&associated_include)?.collect::<Result<HashSet<_>, _>>()?;
 
-                            None => {
-                                files_by_query_name.insert(
-                                    associated_query.to_owned(),
-                                    HashSet::from_iter(vec![Arc::clone(x)]),
-                                );
-                            },
+                    files.iter().for_each(|x| {
+                        if associated_glob.contains(&x.path) {
+                            match files_by_query_name.get_mut(&associated_query) {
+                                Some(collection) => {
+                                    collection.insert(Arc::clone(x));
+                                },
+
+                                None => {
+                                    files_by_query_name.insert(
+                                        associated_query.to_owned(),
+                                        HashSet::from_iter(vec![Arc::clone(x)]),
+                                    );
+                                },
+                            }
                         }
 
                         files_by_path.insert(x.path.to_owned(), Arc::clone(x));
@@ -144,7 +153,7 @@ impl Indexer {
     ) -> AntennaResult<(
         HashMap<(RecognizedLanguage, String), Arc<Query>>,
         HashSet<Arc<IndexedFile>>,
-        String,
+        (String, String),
     )> {
         let include_paths = glob::glob(&antenna_query.include)?;
         let mut queries = HashMap::new();
@@ -186,7 +195,11 @@ impl Indexer {
             return Err(AntennaError::Collection { errors });
         }
 
-        Ok((queries, files, antenna_query.name.clone()))
+        Ok((
+            queries,
+            files,
+            (antenna_query.name.clone(), antenna_query.include.clone()),
+        ))
     }
 
     /// Creates an [`IndexedFile`] via reading the file at the given `path`.
