@@ -11,5 +11,5 @@ pub struct AntennaArguments {
         env = "ANTENNA_SETTINGS_FILE",
         default_value = "./antenna.yml"
     )]
-    pub settings_file: PathBuf,
+    pub configuration_file: PathBuf,
 }

@@ -1,16 +1,18 @@
 use std::fs;
 
-use antenna::{configuration::AntennaConfiguration, process::index::Indexer, AntennaResult};
+use antenna::{process::index::Indexer, AntennaResult};
+use args::AntennaArguments;
 use clap::Parser;
 
 mod args;
 
 fn main() -> AntennaResult<()> {
-    let arguments = args::AntennaArguments::parse();
+    let AntennaArguments {
+        configuration_file: settings_file,
+    } = AntennaArguments::parse();
 
-    let configuration = serde_yaml::from_str::<AntennaConfiguration>(&fs::read_to_string(
-        arguments.settings_file,
-    )?)?;
+    let configuration_file = fs::read_to_string(settings_file)?;
+    let configuration = serde_yaml::from_str(&configuration_file)?;
 
     let _indexer = Indexer::default().index(&configuration)?;
 
