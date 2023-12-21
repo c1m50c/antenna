@@ -8,7 +8,7 @@ use std::{
 };
 
 use rayon::prelude::*;
-use tree_sitter::{Parser, Query, Tree};
+use tree_sitter::{Parser, Tree};
 
 use crate::{
     configuration::{AntennaConfiguration, AntennaQuery},
@@ -17,27 +17,21 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct Indexer {
-    // TODO: The choice of `Arc` here is probably naive, it simply needs to be a reference to a value in `queries`. Optimize this.
-    queries_by_name_and_language: HashMap<(String, RecognizedLanguage), Arc<Query>>,
-
     // TODO: The choice of `Arc` here is probably naive, it simply needs to be a reference to a value in `files`. Optimize this.
     files_by_query_name: HashMap<String, HashSet<Arc<IndexedFile>>>,
 
     // TODO: The choice of `Arc` here is probably naive, it simply needs to be a reference to a value in `files`. Optimize this.
     files_by_path: HashMap<PathBuf, Arc<IndexedFile>>,
 
-    queries: HashMap<(RecognizedLanguage, String), Arc<Query>>,
     files: HashSet<Arc<IndexedFile>>,
 }
 
 impl Indexer {
     /// Consumes the [`Indexer`], creating indicies for all [queries](Query) and [files](IndexedFile) found in the given [`configuration`](AntennaConfiguration).
     pub fn index(self, configuration: &AntennaConfiguration) -> AntennaResult<Self> {
-        let mut queries_by_name_and_language = self.queries_by_name_and_language;
         let mut files_by_query_name = self.files_by_query_name;
         let mut files_by_path = self.files_by_path;
 
-        let mut queries = self.queries;
         let mut files = self.files;
         let mut errors = Vec::new();
 
@@ -49,30 +43,29 @@ impl Indexer {
 
         for index in indices {
             match index {
-                Ok((indexed_queries, indexed_files, associated_query)) => {
+                Ok((indexed_files, (associated_query, associated_include))) => {
                     files.extend(indexed_files);
-                    queries.extend(indexed_queries);
+
+                    let associated_glob =
+                        glob::glob(&associated_include)?.collect::<Result<HashSet<_>, _>>()?;
 
                     files.iter().for_each(|x| {
-                        match files_by_query_name.get_mut(&associated_query) {
-                            Some(collection) => {
-                                collection.insert(Arc::clone(x));
-                            },
+                        if associated_glob.contains(&x.path) {
+                            match files_by_query_name.get_mut(&associated_query) {
+                                Some(collection) => {
+                                    collection.insert(Arc::clone(x));
+                                },
 
-                            None => {
-                                files_by_query_name.insert(
-                                    associated_query.to_owned(),
-                                    HashSet::from_iter(vec![Arc::clone(x)]),
-                                );
-                            },
+                                None => {
+                                    files_by_query_name.insert(
+                                        associated_query.to_owned(),
+                                        HashSet::from_iter(vec![Arc::clone(x)]),
+                                    );
+                                },
+                            }
                         }
 
                         files_by_path.insert(x.path.to_owned(), Arc::clone(x));
-                    });
-
-                    queries.iter().for_each(|((language, _), x)| {
-                        queries_by_name_and_language
-                            .insert((associated_query.to_owned(), *language), Arc::clone(x));
                     });
                 },
 
@@ -83,25 +76,12 @@ impl Indexer {
         }
 
         let constructed = Self {
-            queries_by_name_and_language,
             files_by_query_name,
             files_by_path,
             files,
-            queries,
         };
 
         Ok(constructed)
-    }
-
-    /// Retrieves an indexed [`Query`] via the associated `name` and `language`.
-    pub fn get_query_by_name_and_language(
-        &self,
-        name: String,
-        language: RecognizedLanguage,
-    ) -> Option<&Query> {
-        self.queries_by_name_and_language
-            .get(&(name, language))
-            .map(|x| x.as_ref())
     }
 
     /// Retrieves an [`IndexedFile`] via the associated `query_name`.
@@ -125,11 +105,6 @@ impl Indexer {
         self.files_by_path.get(path.as_ref()).map(|x| x.as_ref())
     }
 
-    /// Retrieves an [`Iterator`] of references to all [`Queries`](Query) indexed in the [`Indexer`].
-    pub fn queries(&self) -> impl Iterator<Item = &Query> {
-        self.queries.values().map(|x| x.as_ref())
-    }
-
     /// Retrieves an [`Iterator`] of references to all [`IndexedFiles`](IndexedFile) indexed in the [`Indexer`].
     pub fn files(&self) -> impl Iterator<Item = &IndexedFile> {
         self.files.iter().map(|x| x.as_ref())
@@ -141,13 +116,8 @@ impl Indexer {
     #[allow(clippy::type_complexity)]
     fn map_antenna_queries(
         antenna_query: &AntennaQuery,
-    ) -> AntennaResult<(
-        HashMap<(RecognizedLanguage, String), Arc<Query>>,
-        HashSet<Arc<IndexedFile>>,
-        String,
-    )> {
+    ) -> AntennaResult<(HashSet<Arc<IndexedFile>>, (String, String))> {
         let include_paths = glob::glob(&antenna_query.include)?;
-        let mut queries = HashMap::new();
         let mut files = HashSet::new();
         let mut errors = Vec::new();
 
@@ -167,26 +137,14 @@ impl Indexer {
             }
         }
 
-        let unique_languages = files
-            .iter()
-            .map(|x| x.recognized_language)
-            .collect::<HashSet<_>>();
-
-        for language in unique_languages {
-            match Query::new(language.as_tree_sitter_language(), &antenna_query.query) {
-                Ok(query) => {
-                    queries.insert((language, antenna_query.query.clone()), Arc::new(query));
-                },
-
-                Err(err) => errors.push(AntennaError::Query { inner: err }),
-            }
-        }
-
         if !errors.is_empty() {
             return Err(AntennaError::Collection { errors });
         }
 
-        Ok((queries, files, antenna_query.name.clone()))
+        Ok((
+            files,
+            (antenna_query.name.clone(), antenna_query.include.clone()),
+        ))
     }
 
     /// Creates an [`IndexedFile`] via reading the file at the given `path`.
