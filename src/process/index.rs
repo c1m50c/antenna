@@ -31,7 +31,7 @@ pub struct Indexer {
 }
 
 impl Indexer {
-    /// Consumes the [`Indexer`], creating indicies for the `queries` and `files` fields.
+    /// Consumes the [`Indexer`], creating indicies for all [queries](Query) and [files](IndexedFile) found in the given [`configuration`](AntennaConfiguration).
     pub fn index(self, configuration: &AntennaConfiguration) -> AntennaResult<Self> {
         let mut queries_by_name_and_language = self.queries_by_name_and_language;
         let mut files_by_query_name = self.files_by_query_name;
@@ -137,6 +137,7 @@ impl Indexer {
 }
 
 impl Indexer {
+    /// Maps an [`AntennaQuery`] to values for the `queries` and `files` fields in an [`Indexer`].
     #[allow(clippy::type_complexity)]
     fn map_antenna_queries(
         antenna_query: &AntennaQuery,
@@ -242,6 +243,7 @@ impl Indexer {
     }
 }
 
+/// Represents a file that has been indexed via an [`Indexer`].
 #[derive(Debug)]
 pub struct IndexedFile {
     pub recognized_language: RecognizedLanguage,
