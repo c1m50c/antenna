@@ -1,4 +1,6 @@
 queries:
   - name: Function Calls
+    output:
+      - occurrences
     include: ./src/**/*.rs
     query: (call_expression)
