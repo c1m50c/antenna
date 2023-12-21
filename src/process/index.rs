@@ -21,7 +21,7 @@ pub struct Indexer {
     queries_by_name_and_language: HashMap<(String, RecognizedLanguage), Arc<Query>>,
 
     // TODO: The choice of `Arc` here is probably naive, it simply needs to be a reference to a value in `files`. Optimize this.
-    files_by_query_name: HashMap<String, Arc<IndexedFile>>,
+    files_by_query_name: HashMap<String, HashSet<Arc<IndexedFile>>>,
 
     // TODO: The choice of `Arc` here is probably naive, it simply needs to be a reference to a value in `files`. Optimize this.
     files_by_path: HashMap<PathBuf, Arc<IndexedFile>>,
@@ -54,7 +54,19 @@ impl Indexer {
                     queries.extend(indexed_queries);
 
                     files.iter().for_each(|x| {
-                        files_by_query_name.insert(associated_query.to_owned(), Arc::clone(x));
+                        match files_by_query_name.get_mut(&associated_query) {
+                            Some(collection) => {
+                                collection.insert(Arc::clone(x));
+                            },
+
+                            None => {
+                                files_by_query_name.insert(
+                                    associated_query.to_owned(),
+                                    HashSet::from_iter(vec![Arc::clone(x)]),
+                                );
+                            },
+                        }
+
                         files_by_path.insert(x.path.to_owned(), Arc::clone(x));
                     });
 
@@ -93,13 +105,16 @@ impl Indexer {
     }
 
     /// Retrieves an [`IndexedFile`] via the associated `query_name`.
-    pub fn get_file_by_query_name<S>(&self, query_name: S) -> Option<&IndexedFile>
+    pub fn get_files_by_query_name<S>(
+        &self,
+        query_name: S,
+    ) -> Option<impl Iterator<Item = &IndexedFile>>
     where
         S: AsRef<str>,
     {
         self.files_by_query_name
             .get(query_name.as_ref())
-            .map(|x| x.as_ref())
+            .map(|x| x.into_iter().map(|x| x.as_ref()))
     }
 
     /// Retrieves an [`IndexedFile`] via the associated `path`.
