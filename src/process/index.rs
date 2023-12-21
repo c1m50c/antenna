@@ -80,6 +80,45 @@ impl Indexer {
 
         Ok(constructed)
     }
+
+    /// Retrieves an indexed [`Query`] via the associated `name` and `language`.
+    pub fn get_query_by_name_and_language<S>(
+        &self,
+        name: String,
+        language: RecognizedLanguage,
+    ) -> Option<&Query> {
+        self.queries_by_name_and_language
+            .get(&(name, language))
+            .map(|x| x.as_ref())
+    }
+
+    /// Retrieves an [`IndexedFile`] via the associated `query_name`.
+    pub fn get_file_by_query_name<S>(&self, query_name: S) -> Option<&IndexedFile>
+    where
+        S: AsRef<str>,
+    {
+        self.files_by_query_name
+            .get(query_name.as_ref())
+            .map(|x| x.as_ref())
+    }
+
+    /// Retrieves an [`IndexedFile`] via the associated `path`.
+    pub fn get_file_by_path<P>(&self, path: P) -> Option<&IndexedFile>
+    where
+        P: AsRef<Path>,
+    {
+        self.files_by_path.get(path.as_ref()).map(|x| x.as_ref())
+    }
+
+    /// Retrieves an [`Iterator`] of references to all [`Queries`](Query) indexed in the [`Indexer`].
+    pub fn queries(&self) -> impl Iterator<Item = &Query> {
+        self.queries.values().map(|x| x.as_ref())
+    }
+
+    /// Retrieves an [`Iterator`] of references to all [`IndexedFiles`](IndexedFile) indexed in the [`Indexer`].
+    pub fn files(&self) -> impl Iterator<Item = &IndexedFile> {
+        self.files.iter().map(|x| x.as_ref())
+    }
 }
 
 impl Indexer {
