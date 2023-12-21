@@ -94,7 +94,7 @@ impl Indexer {
     }
 
     /// Retrieves an indexed [`Query`] via the associated `name` and `language`.
-    pub fn get_query_by_name_and_language<S>(
+    pub fn get_query_by_name_and_language(
         &self,
         name: String,
         language: RecognizedLanguage,
