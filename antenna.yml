@@ -1,12 +1,13 @@
 queries:
   - name: Function Calls
     output:
-      - occurrences
+      - !occurrences
     include: ./src/**/*.rs
     query: (call_expression)
 
   - name: Todos
     output:
-      - occurrences
+      - !csv { path: "./output/todos.csv" }
+      - !occurrences
     include: ./src/**/*.rs
-    query: ((line_comment) @constant (.match? @constant "TODO:.*"))
+    query: ((line_comment) @comment (.match? @comment "TODO:.*"))

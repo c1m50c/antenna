@@ -5,6 +5,7 @@ use thiserror::Error;
 use tree_sitter::{Language, LanguageError, QueryError};
 
 pub mod configuration;
+pub mod csv;
 pub mod process;
 
 /// Wrapper type of a [`Result`] where the [`Err`] variant is a [`AntennaError`].
@@ -53,6 +54,12 @@ pub enum AntennaError {
     Yaml {
         #[from]
         inner: serde_yaml::Error,
+    },
+
+    #[error("csv error")]
+    Csv {
+        #[from]
+        inner: ::csv::Error,
     },
 
     #[error("antenna error")]
