@@ -50,23 +50,19 @@ pub mod csv {
             path: &'a Path,
             out_captures: &'a [super::Capture],
         ) -> Vec<Self> {
-            let out_csv_captures =
-                out_captures
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, capture)| {
-                        Capture {
-                            index,
-                            query: Cow::Borrowed(query),
-                            path: Cow::Borrowed(path),
-                            capture: Cow::Borrowed(&capture.name),
-                            text: Cow::Borrowed(&capture.text),
-                            start_column: capture.start_column,
-                            start_line: capture.start_line,
-                            end_column: capture.end_column,
-                            end_line: capture.end_line,
-                        }
-                    });
+            let out_csv_captures = out_captures.iter().enumerate().map(|(index, capture)| {
+                Capture {
+                    index,
+                    query: Cow::Borrowed(query),
+                    path: Cow::Borrowed(path),
+                    capture: Cow::Borrowed(&capture.name),
+                    text: Cow::Borrowed(&capture.text),
+                    start_column: capture.start_column,
+                    start_line: capture.start_line,
+                    end_column: capture.end_column,
+                    end_line: capture.end_line,
+                }
+            });
 
             out_csv_captures.collect()
         }
