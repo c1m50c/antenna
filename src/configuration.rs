@@ -12,12 +12,21 @@ pub struct AntennaQuery {
     pub name: String,
     pub include: String,
     pub query: String,
-    pub output: Option<HashSet<OutputMode>>,
+    pub output: Option<HashSet<AntennaOutputMode>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum OutputMode {
-    Csv { path: String },
+pub enum AntennaOutputMode {
+    Json {
+        #[serde(default)]
+        require_matches: bool,
+        path: String,
+    },
+
+    Csv {
+        path: String,
+    },
+
     Occurrences,
 }
