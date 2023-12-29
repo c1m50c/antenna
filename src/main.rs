@@ -1,14 +1,8 @@
-use std::{collections::HashMap, fs, io::Write};
+use std::{fs, io::Write};
 
-use antenna::{
-    configuration::AntennaOutputMode,
-    out::{self, CsvRow},
-    process::index::Indexer,
-    AntennaResult,
-};
+use antenna::{configuration::AntennaOutputMode, process::index::Indexer, AntennaResult};
 use args::AntennaArguments;
 use clap::Parser;
-use tree_sitter::{Query, QueryCursor};
 
 mod args;
 
@@ -23,32 +17,16 @@ fn main() -> AntennaResult<()> {
     let indexer = Indexer::default().index(&configuration)?;
 
     for antenna_query in configuration.queries {
-        if let Some(output_modes) = antenna_query.output {
-            let files = indexer
-                .get_files_by_query_name(&antenna_query.name)
-                .expect("The `Indexer` should contain indicies for the given query")
-                .collect::<Vec<_>>();
+        let out_queries = antenna::process::execute_antenna_query(&antenna_query, &indexer)?;
 
+        if let Some(output_modes) = &antenna_query.output {
             for output_mode in output_modes {
                 match output_mode {
                     AntennaOutputMode::Occurrences => {
                         println!("{}", &antenna_query.name);
 
-                        for file in &files {
-                            let query = Query::new(
-                                file.recognized_language.as_tree_sitter_language(),
-                                &antenna_query.query,
-                            )?;
-
-                            let mut query_cursor = QueryCursor::new();
-
-                            let matches = query_cursor.matches(
-                                &query,
-                                file.tree.root_node(),
-                                &file.content[..],
-                            );
-
-                            println!("> {:?} = `{}`", file.path, matches.count());
+                        for out_query in &out_queries {
+                            println!("> {:?} = `{}`", out_query.path, out_query.matches.len());
                         }
                     },
 
@@ -56,82 +34,21 @@ fn main() -> AntennaResult<()> {
                         path,
                         require_matches,
                     } => {
-                        let mut out_queries = Vec::new();
-
-                        for file in &files {
-                            let mut out_query = out::Query {
-                                path: file.path.to_string_lossy().to_string(),
-                                name: antenna_query.name.to_owned(),
-                                matches: Vec::new(),
-                            };
-
-                            let query = Query::new(
-                                file.recognized_language.as_tree_sitter_language(),
-                                &antenna_query.query,
-                            )?;
-
-                            let mut query_cursor = QueryCursor::new();
-
-                            let capture_indices_to_names = query
-                                .capture_names()
-                                .iter()
-                                .flat_map(|x| query.capture_index_for_name(x).map(|i| (i, x)))
-                                .collect::<HashMap<_, _>>();
-
-                            let query_matches = query_cursor.matches(
-                                &query,
-                                file.tree.root_node(),
-                                file.content.as_slice(),
-                            );
-
-                            for query_match in query_matches {
-                                let mut out_match = out::Match {
-                                    captures: Vec::new(),
-                                };
-
-                                let filtered = query_match.captures.iter().filter(|x| {
-                                    capture_indices_to_names.contains_key(&x.index)
-                                });
-
-                                let file_bytes = file.content.as_slice();
-
-                                for query_capture in filtered {
-                                    let range = query_capture.node.range();
-
-                                    let out_capture = out::Capture {
-                                        name: capture_indices_to_names
-                                            .get(&query_capture.index)
-                                            .map(|&x| x.clone())
-                                            .unwrap_or_default(),
-
-                                        text: String::from_utf8(
-                                            file_bytes[range.start_byte..range.end_byte]
-                                                .to_vec(),
-                                        )?,
-
-                                        start_column: range.start_point.column,
-                                        start_line: range.start_point.row,
-                                        end_column: range.end_point.column,
-                                        end_line: range.end_point.row,
-                                    };
-
-                                    out_match.captures.push(out_capture);
-                                }
-
-                                out_query.matches.push(out_match);
-                            }
-
-                            out_queries.push(out_query);
-                        }
-
-                        if require_matches {
-                            out_queries.retain(|x| !x.matches.is_empty());
-                        }
-
                         let mut file =
                             fs::OpenOptions::new().create(true).write(true).open(path)?;
 
-                        let json = serde_json::to_string_pretty(&out_queries)?;
+                        let json = match require_matches {
+                            false => serde_json::to_string_pretty(&out_queries)?,
+                            true => {
+                                let out_queries = out_queries
+                                    .split(|x| x.matches.is_empty())
+                                    .flatten()
+                                    .collect::<Vec<_>>();
+
+                                serde_json::to_string_pretty(&out_queries)?
+                            },
+                        };
+
                         file.write_all(json.as_bytes())?;
                     },
 
@@ -141,56 +58,15 @@ fn main() -> AntennaResult<()> {
 
                         let mut csv_writer = csv::Writer::from_writer(file);
 
-                        for file in &files {
-                            let query = Query::new(
-                                file.recognized_language.as_tree_sitter_language(),
-                                &antenna_query.query,
-                            )?;
+                        for out_query in &out_queries {
+                            for out_match in &out_query.matches {
+                                let rows = antenna::out::csv::Capture::from_out_captures(
+                                    &antenna_query.name,
+                                    &out_query.path,
+                                    &out_match.captures,
+                                );
 
-                            let mut query_cursor = QueryCursor::new();
-
-                            let capture_indices_to_names = query
-                                .capture_names()
-                                .iter()
-                                .flat_map(|x| query.capture_index_for_name(x).map(|i| (i, x)))
-                                .collect::<HashMap<_, _>>();
-
-                            let query_matches = query_cursor.matches(
-                                &query,
-                                file.tree.root_node(),
-                                file.content.as_slice(),
-                            );
-
-                            for (query_match_idx, query_match) in query_matches.enumerate() {
-                                let filtered = query_match.captures.iter().filter(|x| {
-                                    capture_indices_to_names.contains_key(&x.index)
-                                });
-
-                                let file_bytes = file.content.as_slice();
-
-                                for query_capture in filtered {
-                                    let range = query_capture.node.range();
-
-                                    let bytes = &file_bytes[range.start_byte..range.end_byte];
-
-                                    let csv_row = CsvRow {
-                                        capture: capture_indices_to_names
-                                            .get(&query_capture.index)
-                                            .map(|&x| x.clone())
-                                            .unwrap_or_default(),
-
-                                        text: String::from_utf8_lossy(bytes).to_string(),
-                                        path: file.path.to_string_lossy().to_string(),
-                                        start_column: range.start_point.column,
-                                        query: antenna_query.name.to_owned(),
-                                        end_column: range.end_point.column,
-                                        start_line: range.start_point.row,
-                                        end_line: range.end_point.row,
-                                        match_idx: query_match_idx,
-                                    };
-
-                                    csv_writer.serialize(csv_row)?;
-                                }
+                                csv_writer.serialize(rows)?;
                             }
                         }
 
