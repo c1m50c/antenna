@@ -13,4 +13,8 @@ pub struct AntennaArguments {
         default_value = "./antenna.yml"
     )]
     pub configuration_file: PathBuf,
+
+    /// Path to the `git` repository to analyze.
+    #[arg(short, long, env = "ANTENNA_REPOSITORY", default_value = ".")]
+    pub repository: PathBuf,
 }

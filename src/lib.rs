@@ -68,6 +68,12 @@ pub enum AntennaError {
         inner: csv::Error,
     },
 
+    #[error("git error")]
+    Git {
+        #[from]
+        inner: git2::Error,
+    },
+
     #[error("antenna error")]
     Antenna { message: String },
 

@@ -5,6 +5,7 @@ use tree_sitter::{Query, QueryCursor};
 use crate::{configuration::AntennaQuery, AntennaResult};
 
 pub mod index;
+pub mod time;
 
 pub fn execute_antenna_query<'a>(
     antenna_query: &'a AntennaQuery,

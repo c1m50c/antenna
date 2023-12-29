@@ -1,6 +1,10 @@
 use std::{fs, io::Write};
 
-use antenna::{configuration::AntennaOutputMode, process::index::Indexer, AntennaResult};
+use antenna::{
+    configuration::AntennaOutputMode,
+    process::{index::Indexer, time::TimeTraverser},
+    AntennaResult,
+};
 use args::AntennaArguments;
 use clap::Parser;
 
@@ -9,11 +13,13 @@ mod args;
 fn main() -> AntennaResult<()> {
     let AntennaArguments {
         configuration_file: settings_file,
+        repository,
     } = AntennaArguments::parse();
 
     let configuration_file = fs::read_to_string(settings_file)?;
     let configuration = serde_yaml::from_str(&configuration_file)?;
 
+    let time_traverser = TimeTraverser::new(&repository)?;
     let indexer = Indexer::default().index(&configuration)?;
 
     for antenna_query in configuration.queries {
