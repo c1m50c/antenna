@@ -1,0 +1,26 @@
+{
+  "name": "site",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bunx --bun vite",
+    "build": "bunx --bun vite build",
+    "preview": "bunx --bun vite preview",
+    "check": "bunx --bun @biomejs/biome check . && bunx --bun svelte-check --tsconfig ./tsconfig.json",
+    "format": "bunx --bun @biomejs/biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.4.1",
+    "@sveltejs/vite-plugin-svelte": "^3.0.1",
+    "@tsconfig/svelte": "^5.0.2",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "svelte": "^4.2.8",
+    "svelte-check": "^3.6.2",
+    "tailwindcss": "^3.4.0",
+    "tslib": "^2.6.2",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8"
+  }
+}
