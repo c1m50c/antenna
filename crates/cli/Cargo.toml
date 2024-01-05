@@ -1,0 +1,42 @@
+[package]
+name = "antenna-cli"
+description = "Tooling for repository analysis."
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+readme = "../../README.md"
+authors = [
+    "c1m50c <58411864+c1m50c@users.noreply.github.com>"
+]
+
+[dependencies]
+clap = { version = "4.4.11", features = ["env", "derive", "cargo"] }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+serde = { workspace = true }
+csv = { workspace = true }
+
+[dependencies.antenna]
+path = "../lib"
+features = [
+    "rust",
+    "python",
+    "typescript",
+    "javascript",
+    "go",
+    "cpp",
+    "java",
+    "c",
+    "ruby",
+    "html",
+    "swift",
+    "c-sharp",
+    "css",
+    "json",
+    "toml",
+    "yaml",
+]
+
+[[bin]]
+path = "src/main.rs"
+name = "antenna"

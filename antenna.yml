@@ -4,5 +4,5 @@ queries:
       - !json { path: "./todos.json", require_matches: true }
       - !csv { path: "./todos.csv" }
       - !occurrences
-    include: ./src/**/*.rs
-    query: ((line_comment) @comment (.match? @comment "TODO:.*"))
+    include: ./crates/**/*.rs
+    query: ((line_comment) @Comment (.match? @Comment "TODO:.*"))
